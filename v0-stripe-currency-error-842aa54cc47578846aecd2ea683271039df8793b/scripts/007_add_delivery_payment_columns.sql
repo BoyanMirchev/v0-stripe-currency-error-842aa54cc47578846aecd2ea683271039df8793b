@@ -1,0 +1,10 @@
+-- Add delivery and payment columns to orders table
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_method VARCHAR(50);
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_method VARCHAR(50);
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_cost DECIMAL(10, 2) DEFAULT 0;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS econt_city VARCHAR(255);
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS econt_office_name VARCHAR(255);
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS econt_office_address VARCHAR(500);
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS store_name VARCHAR(255);
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS store_address VARCHAR(500);
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS country VARCHAR(100) DEFAULT 'България';
