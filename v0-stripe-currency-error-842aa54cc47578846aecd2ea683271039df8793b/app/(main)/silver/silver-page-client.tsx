@@ -90,6 +90,62 @@ export default function SilverPageClient({ initialSilver, initialCategories, ini
   const [isSticky, setIsSticky] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 12
+
+  // Remember the page and scroll position per category so returning from a
+  // product detail page restores where the user was.
+  const pageStorageKey = `silver-page-${categoryParam || "all"}`
+  const scrollStorageKey = `silver-scroll-${categoryParam || "all"}`
+  const filtersInitialized = useRef(false)
+  const didRestore = useRef(false)
+
+  // Restore the saved page and scroll position on mount.
+  useEffect(() => {
+    if (typeof window === "undefined" || didRestore.current) return
+    didRestore.current = true
+
+    const savedPage = sessionStorage.getItem(pageStorageKey)
+    if (savedPage) {
+      const parsed = Number.parseInt(savedPage, 10)
+      if (!Number.isNaN(parsed) && parsed > 1) {
+        setCurrentPage(parsed)
+      }
+    }
+
+    const savedScroll = sessionStorage.getItem(scrollStorageKey)
+    if (savedScroll) {
+      const y = Number.parseInt(savedScroll, 10)
+      if (!Number.isNaN(y) && y > 0) {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => window.scrollTo(0, y))
+        })
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageStorageKey, scrollStorageKey])
+
+  // Persist the current page whenever it changes.
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    sessionStorage.setItem(pageStorageKey, String(currentPage))
+  }, [currentPage, pageStorageKey])
+
+  // Continuously persist the scroll position so it can be restored on return.
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    let frame = 0
+    const onScroll = () => {
+      if (frame) return
+      frame = requestAnimationFrame(() => {
+        frame = 0
+        sessionStorage.setItem(scrollStorageKey, String(window.scrollY))
+      })
+    }
+    window.addEventListener("scroll", onScroll, { passive: true })
+    return () => {
+      window.removeEventListener("scroll", onScroll)
+      if (frame) cancelAnimationFrame(frame)
+    }
+  }, [scrollStorageKey])
   const topRef = useRef<HTMLDivElement>(null)
   
   const scrollToTop = () => {
@@ -244,6 +300,12 @@ export default function SilverPageClient({ initialSilver, initialCategories, ini
   }
 
   useEffect(() => {
+    // Skip the initial mount so a page restored from sessionStorage isn't
+    // immediately reset to 1. Only reset when filters actually change afterwards.
+    if (!filtersInitialized.current) {
+      filtersInitialized.current = true
+      return
+    }
     setCurrentPage(1)
   }, [
     silverTypeFilter,
