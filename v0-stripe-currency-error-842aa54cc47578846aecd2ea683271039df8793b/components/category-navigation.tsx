@@ -224,6 +224,25 @@ export default function CategoryNavigation({ onClose }: CategoryNavigationProps)
               {/* Gold Categories */}
               {selectedCategory.id === "gold" && (
                 <>
+                  {/* View All Gold Link */}
+                  <Link
+                    href="/gold"
+                    onClick={onClose}
+                    className="w-full flex items-center px-4 py-5 hover:bg-gray-50 transition-all text-left"
+                  >
+                    <div className="flex-shrink-0 w-10 h-10 mr-4">
+                      <Image
+                        src="/images/pgmks1168.png"
+                        alt="Всички"
+                        width={40}
+                        height={40}
+                        className="object-contain"
+                      />
+                    </div>
+                    <span className="flex-1 text-base font-medium text-gray-900">Всички</span>
+                    <ChevronRight className="w-5 h-5 text-[#e60200] flex-shrink-0" />
+                  </Link>
+
                   {/* Gold Categories from API */}
                   {goldCategories
                     .filter((cat) => cat.parent_id === null)
@@ -467,6 +486,13 @@ export default function CategoryNavigation({ onClose }: CategoryNavigationProps)
               <div className="space-y-4">
                 {/* Gold Categories Grid */}
                 <div className="flex flex-wrap gap-3">
+                  <Link
+                    href="/gold"
+                    onClick={onClose}
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-full text-sm font-medium text-gray-900 hover:bg-gray-50 hover:border-[#c9a227] hover:text-[#c9a227] transition-colors"
+                  >
+                    Всички
+                  </Link>
                   {goldCategories
                     .filter((cat) => cat.parent_id === null)
                     .map((category) => (
