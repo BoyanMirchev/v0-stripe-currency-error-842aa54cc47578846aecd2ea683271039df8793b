@@ -298,6 +298,25 @@ export default function CategoryNavigation({ onClose }: CategoryNavigationProps)
             {/* Silver Categories */}
             {selectedCategory.id === "silver" && (
               <>
+                {/* View All Silver Link */}
+                <Link
+                  href="/silver"
+                  onClick={onClose}
+                  className="w-full flex items-center px-4 py-5 hover:bg-gray-50 transition-all text-left"
+                >
+                  <div className="flex-shrink-0 w-10 h-10 mr-4">
+                    <Image
+                      src="/images/pgmks1168.png"
+                      alt="Всички"
+                      width={40}
+                      height={40}
+                      className="object-contain"
+                    />
+                  </div>
+                  <span className="flex-1 text-base font-medium text-gray-900">Всички</span>
+                  <ChevronRight className="w-5 h-5 text-[#e60200] flex-shrink-0" />
+                </Link>
+
                 {/* Silver Categories from API */}
                 {silverCategories
                   .filter((cat) => cat.parent_id === null)
@@ -541,6 +560,13 @@ export default function CategoryNavigation({ onClose }: CategoryNavigationProps)
               <div className="space-y-4">
                 {/* Silver Categories Grid */}
                 <div className="flex flex-wrap gap-3">
+                  <Link
+                    href="/silver"
+                    onClick={onClose}
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-full text-sm font-medium text-gray-900 hover:bg-gray-50 hover:border-[#a0a0a0] hover:text-[#606060] transition-colors"
+                  >
+                    Всички
+                  </Link>
                   {silverCategories
                     .filter((cat) => cat.parent_id === null)
                     .map((category) => (
