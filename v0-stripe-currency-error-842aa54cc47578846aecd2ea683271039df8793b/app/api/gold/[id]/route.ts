@@ -99,7 +99,26 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params
-    const result = await sql`DELETE FROM gold_sales WHERE id = ${Number.parseInt(id)} RETURNING *`
+    const goldId = Number.parseInt(id)
+
+    if (!Number.isInteger(goldId)) {
+      return NextResponse.json({ error: "Invalid gold id" }, { status: 400 })
+    }
+
+    // Remove loose product references first so a foreign-key constraint can't
+    // block the delete. Best-effort; won't fail if the table doesn't exist.
+    try {
+      await sql`DELETE FROM reviews WHERE product_id = ${goldId} AND product_type = 'gold'`
+    } catch (e) {
+      console.log("[v0] Skipping reviews cleanup:", e instanceof Error ? e.message : e)
+    }
+    try {
+      await sql`DELETE FROM order_items WHERE product_id = ${goldId} AND product_type = 'gold'`
+    } catch (e) {
+      console.log("[v0] Skipping order_items cleanup:", e instanceof Error ? e.message : e)
+    }
+
+    const result = await sql`DELETE FROM gold_sales WHERE id = ${goldId} RETURNING *`
 
     if (result.length === 0) {
       return NextResponse.json({ error: "Gold sale not found" }, { status: 404 })
@@ -108,6 +127,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     return NextResponse.json(result[0])
   } catch (error) {
     console.error("[v0] Error deleting gold sale:", error)
-    return NextResponse.json({ error: "Failed to delete gold sale" }, { status: 500 })
+    const details = error instanceof Error ? error.message : "Unknown error"
+    return NextResponse.json({ error: "Failed to delete gold sale", details }, { status: 500 })
   }
 }
