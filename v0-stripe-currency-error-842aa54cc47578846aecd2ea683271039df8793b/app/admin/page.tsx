@@ -4,7 +4,7 @@ import { DialogFooter } from "@/components/ui/dialog"
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import {
   Plus,
   Pencil,
@@ -404,6 +404,67 @@ interface RemingtonSettings {
   title: string
   image_url: string
   button_link: string
+}
+
+// Dynamically build SEO fields for an equipment product from the data the
+// admin enters in the other columns (name, brand, model, category, etc.).
+function generateEquipmentSeo(data: {
+  name?: string
+  brand?: string
+  model?: string
+  category?: string
+  condition?: string
+  price?: number
+  description?: string
+  specifications?: { name: string; value: string }[]
+}) {
+  const name = (data.name || "").trim()
+  const brand = (data.brand || "").trim()
+  const model = (data.model || "").trim()
+  const category = (data.category || "").trim()
+  const condition = (data.condition || "").trim()
+  const price = Number(data.price) || 0
+  const description = (data.description || "").replace(/\s+/g, " ").trim()
+
+  // SEO Title (max 60 chars): name + brand/model + category, avoiding duplicates
+  const titleParts: string[] = []
+  if (name) titleParts.push(name)
+  const brandModel = [brand, model].filter(Boolean).join(" ").trim()
+  if (brandModel && !name.toLowerCase().includes(brandModel.toLowerCase())) {
+    titleParts.push(brandModel)
+  }
+  if (category && !titleParts.join(" ").toLowerCase().includes(category.toLowerCase())) {
+    titleParts.push(category)
+  }
+  let seo_title = titleParts.join(" | ")
+  if (seo_title.length > 60) seo_title = seo_title.slice(0, 57).trimEnd() + "..."
+
+  // SEO Description (max 160 chars): a short natural summary of the product
+  const descBits: string[] = []
+  const nameCat = category && name ? `${name} - ${category}` : name || category
+  if (nameCat) descBits.push(nameCat)
+  if (condition) descBits.push(`Състояние: ${condition}`)
+  if (price > 0) descBits.push(`Цена: ${price.toFixed(2)} €`)
+  if (description) descBits.push(description)
+  let seo_description = descBits.join(". ")
+  if (seo_description.length > 160) seo_description = seo_description.slice(0, 157).trimEnd() + "..."
+
+  // SEO Keywords: unique comma-separated tokens from the key attributes
+  const keywordSet = new Set<string>()
+  const addKeyword = (v?: string) => {
+    const t = (v || "").trim()
+    if (t) keywordSet.add(t)
+  }
+  addKeyword(name)
+  addKeyword(brand)
+  addKeyword(model)
+  if (brand && model) addKeyword(`${brand} ${model}`)
+  addKeyword(category)
+  addKeyword(condition)
+  ;(data.specifications || []).slice(0, 4).forEach((s) => addKeyword(s?.value))
+  const seo_keywords = Array.from(keywordSet).join(", ")
+
+  return { seo_title, seo_description, seo_keywords }
 }
 
 export default function AdminPage() {
@@ -927,6 +988,37 @@ const [homeBannerFormData, setHomeBannerFormData] = useState({
     seo_description: "",
     seo_keywords: "",
   })
+
+  // When true, the equipment SEO fields are auto-generated from the other
+  // fields. Set to false as soon as the admin manually edits an SEO field.
+  const equipmentSeoAuto = useRef(true)
+
+  // Regenerate the SEO fields whenever the source fields change (unless the
+  // admin has manually overridden them for this product).
+  useEffect(() => {
+    if (!equipmentSeoAuto.current) return
+    const generated = generateEquipmentSeo(equipmentFormData)
+    setEquipmentFormData((prev) => {
+      if (
+        prev.seo_title === generated.seo_title &&
+        prev.seo_description === generated.seo_description &&
+        prev.seo_keywords === generated.seo_keywords
+      ) {
+        return prev
+      }
+      return { ...prev, ...generated }
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    equipmentFormData.name,
+    equipmentFormData.brand,
+    equipmentFormData.model,
+    equipmentFormData.category,
+    equipmentFormData.condition,
+    equipmentFormData.price,
+    equipmentFormData.description,
+    equipmentFormData.specifications,
+  ])
 
 const [goldFormData, setGoldFormData] = useState({
   gold_type: "",
@@ -1636,7 +1728,7 @@ const [goldFormData, setGoldFormData] = useState({
       if (res.ok) {
         toast({
           title: "Успешно",
-          description: "Настройките за видимост са запазени успешно",
+          description: "Настройките за вид��мост са запазени успешно",
         })
       } else {
         throw new Error("Failed to save section visibility")
@@ -2802,6 +2894,8 @@ const resetStoreForm = () => {
 
   const handleEditEquipment = (item: Equipment) => {
     setEditingEquipment(item)
+    // Regenerate SEO dynamically from the product's fields when editing.
+    equipmentSeoAuto.current = true
     const featuresString = Array.isArray(item.features) ? item.features.join(", ") : ""
     // Parse specifications - handle both array and object formats
     let specs: { name: string; value: string }[] = []
@@ -3274,6 +3368,7 @@ const resetHomeBannerForm = () => {
   const resetEquipmentForm = () => {
     setEditingEquipment(null)
     setEquipmentProductType("")
+    equipmentSeoAuto.current = true
     setEquipmentFormData({
       name: "",
       category: "",
@@ -3456,7 +3551,7 @@ const resetSilverForm = () => {
       if (response.ok) {
         toast({
           title: "Успех",
-          description: editingSilverCategory ? "Категорията е обновена успешно" : "Категорията е добавена успешно",
+          description: editingSilverCategory ? "Категорията е обновена успешно" : "��атегорията е добавена успешно",
         })
         fetchSilverCategories()
         setSilverCategoryDialogOpen(false)
@@ -5252,7 +5347,7 @@ const resetSilverForm = () => {
                                 } catch (error) {
                                   toast({
                                     title: "Грешка",
-                                    description: "Неуспешно качван�� на снимките",
+                                    description: "Неуспешно ��ачван�� на снимките",
                                     variant: "destructive",
                                   })
                                 } finally {
@@ -6064,16 +6159,20 @@ const resetSilverForm = () => {
 
                         {/* SEO Section */}
                         <div className="border-t pt-4 mt-4">
-                          <h4 className="text-sm font-semibold text-gray-700 mb-3">SEO Настройки</h4>
+                          <h4 className="text-sm font-semibold text-gray-700 mb-1">SEO Настройки</h4>
+                          <p className="text-xs text-muted-foreground mb-3">
+                            Генерират се автоматично от данните на продукта. Можете да ги редактирате ръчно.
+                          </p>
                           <div className="space-y-3">
                             <div className="space-y-2">
                               <Label htmlFor="eq-seo-title">SEO Заглавие</Label>
                               <Input
                                 id="eq-seo-title"
                                 value={equipmentFormData.seo_title || ""}
-                                onChange={(e) =>
+                                onChange={(e) => {
+                                  equipmentSeoAuto.current = false
                                   setEquipmentFormData({ ...equipmentFormData, seo_title: e.target.value })
-                                }
+                                }}
                                 placeholder="Заглавие за търсачките (до 60 символа)"
                                 maxLength={60}
                               />
@@ -6087,9 +6186,10 @@ const resetSilverForm = () => {
                                 id="eq-seo-description"
                                 rows={2}
                                 value={equipmentFormData.seo_description || ""}
-                                onChange={(e) =>
+                                onChange={(e) => {
+                                  equipmentSeoAuto.current = false
                                   setEquipmentFormData({ ...equipmentFormData, seo_description: e.target.value })
-                                }
+                                }}
                                 placeholder="Описание за търсачките (до 160 символа)"
                                 maxLength={160}
                               />
@@ -6102,9 +6202,10 @@ const resetSilverForm = () => {
                               <Input
                                 id="eq-seo-keywords"
                                 value={equipmentFormData.seo_keywords || ""}
-                                onChange={(e) =>
+                                onChange={(e) => {
+                                  equipmentSeoAuto.current = false
                                   setEquipmentFormData({ ...equipmentFormData, seo_keywords: e.target.value })
-                                }
+                                }}
                                 placeholder="Ключови думи (разделени със запетая)"
                               />
                             </div>
