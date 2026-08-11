@@ -513,7 +513,7 @@ export default function AdminPage() {
     { id: "users", label: "Клиенти" },
     { id: "orders", label: "Поръчки" },
     { id: "messages", label: "Абонаменти" },
-    { id: "stores", label: "Мага��ини" },
+    { id: "stores", label: "Ма��а��ини" },
     { id: "contact", label: "Контакти" },
     { id: "remington-settings", label: "Remington секция" },
     { id: "delivery-settings", label: "Настройки доставка" },
@@ -2381,7 +2381,7 @@ const handleEditStore = (store: Store) => {
       console.error("Error deleting store:", error)
       toast({
         title: "Грешка",
-        description: error instanceof Error ? error.message : "Неуспешно изтриване на обекта",
+        description: error instanceof Error ? error.message : "Неуспешно изтриване ��а обекта",
         variant: "destructive",
       })
     }
@@ -5252,7 +5252,7 @@ const resetSilverForm = () => {
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="нова">Нова</SelectItem>
-                                <SelectItem value="употребявана">Употребявана</SelectItem>
+                                <SelectItem value="употребявана">��потребявана</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
@@ -5502,6 +5502,21 @@ const resetSilverForm = () => {
                   )}
                 </CardContent>
               </Card>
+
+              <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Изтриване на кола</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Сигурни ли сте, че искате да изтриете тази кола? Това действие е необратимо.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel onClick={() => setDeletingCarId(null)}>Отказ</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDelete}>Изтрий</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </TabsContent>
 
             <TabsContent value="equipment">
