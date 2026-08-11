@@ -97,8 +97,24 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params
+    const equipmentId = Number(id)
+
+    if (!Number.isInteger(equipmentId)) {
+      return NextResponse.json({ error: "Invalid equipment id" }, { status: 400 })
+    }
+
+    // Remove dependent rows first so the delete can't fail on a foreign-key
+    // reference (reviews and order history reference products loosely by
+    // product_id + product_type). This is best-effort and won't block the
+    // delete if those tables don't exist.
+    try {
+      await sql`DELETE FROM reviews WHERE product_id = ${equipmentId} AND product_type = 'equipment'`
+    } catch (e) {
+      console.log("[v0] Skipping reviews cleanup:", e instanceof Error ? e.message : e)
+    }
+
     const result = await sql`
-      DELETE FROM equipment WHERE id = ${id}
+      DELETE FROM equipment WHERE id = ${equipmentId}
       RETURNING *
     `
 
@@ -108,7 +124,8 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
 
     return NextResponse.json({ message: "Equipment deleted successfully" })
   } catch (error) {
-    console.error("Error deleting equipment:", error)
-    return NextResponse.json({ error: "Failed to delete equipment" }, { status: 500 })
+    console.error("[v0] Error deleting equipment:", error)
+    const details = error instanceof Error ? error.message : "Unknown error"
+    return NextResponse.json({ error: "Failed to delete equipment", details }, { status: 500 })
   }
 }

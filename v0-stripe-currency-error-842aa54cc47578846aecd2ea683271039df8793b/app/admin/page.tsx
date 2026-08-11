@@ -1438,7 +1438,7 @@ const [goldFormData, setGoldFormData] = useState({
         params.append("store_id", storeIdToUse.toString())
       }
       
-      const response = await fetch(`/api/equipment?${params.toString()}`)
+      const response = await fetch(`/api/equipment?${params.toString()}`, { cache: "no-store" })
       if (!response.ok) {
         console.error("[v0] Failed to fetch equipment:", response.statusText)
         setEquipment([])
@@ -3077,9 +3077,17 @@ const handleEditSilver = (item: Silver) => {
     try {
       const response = await fetch(`/api/equipment/${deletingEquipmentId}`, {
         method: "DELETE",
+        cache: "no-store",
       })
 
-      if (!response.ok) throw new Error("Failed to delete equipment")
+      if (!response.ok) {
+        let serverMessage = ""
+        try {
+          const body = await response.json()
+          serverMessage = body?.details || body?.error || ""
+        } catch {}
+        throw new Error(serverMessage || `Failed to delete equipment (${response.status})`)
+      }
 
       toast({
         title: "Успех",
@@ -3093,7 +3101,8 @@ const handleEditSilver = (item: Silver) => {
       console.error("[v0] Error deleting equipment:", error)
       toast({
         title: "Грешка",
-        description: "Неуспешно изтриване на техниката",
+        description:
+          error instanceof Error ? error.message : "Неуспешно изтриване на техниката",
         variant: "destructive",
       })
     }
@@ -6255,7 +6264,7 @@ const resetSilverForm = () => {
                             <TableHead>Категория</TableHead>
                             <TableHead>Цена</TableHead>
                             <TableHead>Наличност</TableHead>
-                            <TableHead>Статус</TableHead>
+                            <TableHead>Стату��</TableHead>
                             <TableHead>Действия</TableHead>
                           </TableRow>
                         </TableHeader>
