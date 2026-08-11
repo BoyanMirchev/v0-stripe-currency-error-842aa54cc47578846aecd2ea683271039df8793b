@@ -98,6 +98,33 @@ export default function EquipmentPageClient({
   const [specFilterOpenStates, setSpecFilterOpenStates] = useState<Record<string, boolean>>({})
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 20
+
+  // Key used to remember the current page per category so returning from a
+  // product detail page restores the page the user was on.
+  const pageStorageKey = `equipment-page-${categoryParam || "all"}`
+  // Skip the "reset to page 1" effect on the very first render so a restored
+  // page isn't immediately overwritten on mount.
+  const didRestorePage = useRef(false)
+
+  // Restore the saved page (and scroll position) when the component mounts.
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const savedPage = sessionStorage.getItem(pageStorageKey)
+    if (savedPage) {
+      const parsed = Number.parseInt(savedPage, 10)
+      if (!Number.isNaN(parsed) && parsed > 1) {
+        setCurrentPage(parsed)
+      }
+    }
+    didRestorePage.current = true
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageStorageKey])
+
+  // Persist the current page whenever it changes.
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    sessionStorage.setItem(pageStorageKey, String(currentPage))
+  }, [currentPage, pageStorageKey])
   
   // Category info for breadcrumbs and title
   const [categoryInfo, setCategoryInfo] = useState<CategoryInfo | null>(initialCategoryInfo)
@@ -306,6 +333,9 @@ export default function EquipmentPageClient({
   const paginatedEquipment = filteredEquipment.slice(startIndex, endIndex)
 
   useEffect(() => {
+    // Don't reset on the initial mount, otherwise the page restored from
+    // sessionStorage would be clobbered before the user changes any filter.
+    if (!didRestorePage.current) return
     setCurrentPage(1)
   }, [
     priceRange,
