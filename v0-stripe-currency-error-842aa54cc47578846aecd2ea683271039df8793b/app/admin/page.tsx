@@ -513,7 +513,7 @@ export default function AdminPage() {
     { id: "users", label: "Клиенти" },
     { id: "orders", label: "Поръчки" },
     { id: "messages", label: "Абонаменти" },
-    { id: "stores", label: "Магазини" },
+    { id: "stores", label: "Мага��ини" },
     { id: "contact", label: "Контакти" },
     { id: "remington-settings", label: "Remington секция" },
     { id: "delivery-settings", label: "Настройки доставка" },
@@ -1253,7 +1253,7 @@ const [goldFormData, setGoldFormData] = useState({
         (currentUser?.role === 'worker' && currentUser?.store_id ? currentUser.store_id : null)
       
       const url = storeIdToUse ? `/api/cars?store_id=${storeIdToUse}` : "/api/cars"
-      const response = await fetch(url)
+      const response = await fetch(url, { cache: "no-store" })
       const data = await response.json()
       setCars(data)
     } catch (error) {
@@ -5135,7 +5135,7 @@ const resetSilverForm = () => {
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="price">Цена (€) *</Label>
+                            <Label htmlFor="price">Цена (���) *</Label>
                             <Input
                               id="price"
                               type="number"
@@ -9873,7 +9873,7 @@ const resetSilverForm = () => {
                             
                             {seoSettings.logo_url && (
                               <div className="mt-4 p-4 bg-slate-50 rounded-lg">
-                                <p className="text-sm text-muted-foreground mb-2">Текущо лого:</p>
+                                <p className="text-sm text-muted-foreground mb-2">Текущо ��ого:</p>
                                 <div className="flex items-center gap-4">
                                   <div className="bg-white p-2 rounded border">
                                     <img
