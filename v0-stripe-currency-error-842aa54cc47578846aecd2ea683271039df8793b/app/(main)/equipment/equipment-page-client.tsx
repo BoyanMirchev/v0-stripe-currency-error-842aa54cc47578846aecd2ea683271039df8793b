@@ -102,13 +102,18 @@ export default function EquipmentPageClient({
   // Key used to remember the current page per category so returning from a
   // product detail page restores the page the user was on.
   const pageStorageKey = `equipment-page-${categoryParam || "all"}`
-  // Skip the "reset to page 1" effect on the very first render so a restored
-  // page isn't immediately overwritten on mount.
-  const didRestorePage = useRef(false)
+  const scrollStorageKey = `equipment-scroll-${categoryParam || "all"}`
+  // Tracks whether the filter-reset effect has run its initial mount pass, so a
+  // restored page isn't immediately reset to 1.
+  const filtersInitialized = useRef(false)
+  // Tracks whether we've already restored on mount, to restore scroll only once.
+  const didRestore = useRef(false)
 
-  // Restore the saved page (and scroll position) when the component mounts.
+  // Restore the saved page and scroll position when the component mounts.
   useEffect(() => {
-    if (typeof window === "undefined") return
+    if (typeof window === "undefined" || didRestore.current) return
+    didRestore.current = true
+
     const savedPage = sessionStorage.getItem(pageStorageKey)
     if (savedPage) {
       const parsed = Number.parseInt(savedPage, 10)
@@ -116,15 +121,43 @@ export default function EquipmentPageClient({
         setCurrentPage(parsed)
       }
     }
-    didRestorePage.current = true
+
+    const savedScroll = sessionStorage.getItem(scrollStorageKey)
+    if (savedScroll) {
+      const y = Number.parseInt(savedScroll, 10)
+      if (!Number.isNaN(y) && y > 0) {
+        // Wait for the restored page to render before scrolling back.
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => window.scrollTo(0, y))
+        })
+      }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pageStorageKey])
+  }, [pageStorageKey, scrollStorageKey])
 
   // Persist the current page whenever it changes.
   useEffect(() => {
     if (typeof window === "undefined") return
     sessionStorage.setItem(pageStorageKey, String(currentPage))
   }, [currentPage, pageStorageKey])
+
+  // Continuously persist the scroll position so it can be restored on return.
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    let frame = 0
+    const onScroll = () => {
+      if (frame) return
+      frame = requestAnimationFrame(() => {
+        frame = 0
+        sessionStorage.setItem(scrollStorageKey, String(window.scrollY))
+      })
+    }
+    window.addEventListener("scroll", onScroll, { passive: true })
+    return () => {
+      window.removeEventListener("scroll", onScroll)
+      if (frame) cancelAnimationFrame(frame)
+    }
+  }, [scrollStorageKey])
   
   // Category info for breadcrumbs and title
   const [categoryInfo, setCategoryInfo] = useState<CategoryInfo | null>(initialCategoryInfo)
@@ -333,9 +366,12 @@ export default function EquipmentPageClient({
   const paginatedEquipment = filteredEquipment.slice(startIndex, endIndex)
 
   useEffect(() => {
-    // Don't reset on the initial mount, otherwise the page restored from
-    // sessionStorage would be clobbered before the user changes any filter.
-    if (!didRestorePage.current) return
+    // Skip the initial mount so a page restored from sessionStorage isn't
+    // immediately reset to 1. Only reset when filters actually change afterwards.
+    if (!filtersInitialized.current) {
+      filtersInitialized.current = true
+      return
+    }
     setCurrentPage(1)
   }, [
     priceRange,
