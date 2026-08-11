@@ -111,6 +111,24 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   try {
     const { id: paramId } = await params
     const id = Number.parseInt(paramId)
+
+    if (!Number.isInteger(id)) {
+      return NextResponse.json({ error: "Invalid car id" }, { status: 400 })
+    }
+
+    // Remove loose product references first so a foreign-key constraint can't
+    // block the delete. Best-effort; won't fail if the table doesn't exist.
+    try {
+      await sql`DELETE FROM reviews WHERE product_id = ${id} AND product_type = 'car'`
+    } catch (e) {
+      console.log("[v0] Skipping reviews cleanup:", e instanceof Error ? e.message : e)
+    }
+    try {
+      await sql`DELETE FROM order_items WHERE product_id = ${id} AND product_type = 'car'`
+    } catch (e) {
+      console.log("[v0] Skipping order_items cleanup:", e instanceof Error ? e.message : e)
+    }
+
     const result = await sql`DELETE FROM cars WHERE id = ${id} RETURNING *`
 
     if (result.length === 0) {
@@ -120,6 +138,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     return NextResponse.json({ message: "Car deleted successfully" })
   } catch (error) {
     console.error("[v0] Error deleting car:", error)
-    return NextResponse.json({ error: "Failed to delete car" }, { status: 500 })
+    const details = error instanceof Error ? error.message : "Unknown error"
+    return NextResponse.json({ error: "Failed to delete car", details }, { status: 500 })
   }
 }

@@ -3,6 +3,9 @@ import { neon } from "@neondatabase/serverless"
 
 const sql = neon(process.env.DATABASE_URL!)
 
+// Never cache these responses so deletes/updates are reflected immediately.
+export const dynamic = "force-dynamic"
+
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params
@@ -104,13 +107,20 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     }
 
     // Remove dependent rows first so the delete can't fail on a foreign-key
-    // reference (reviews and order history reference products loosely by
-    // product_id + product_type). This is best-effort and won't block the
-    // delete if those tables don't exist.
+    // reference. Some tables reference products loosely by product_id +
+    // product_type; order_items keeps its own snapshot of the product name/
+    // image/price, so removing the reference does not affect order history.
+    // Each cleanup is best-effort and won't block the delete if the table
+    // doesn't exist in this database.
     try {
       await sql`DELETE FROM reviews WHERE product_id = ${equipmentId} AND product_type = 'equipment'`
     } catch (e) {
       console.log("[v0] Skipping reviews cleanup:", e instanceof Error ? e.message : e)
+    }
+    try {
+      await sql`DELETE FROM order_items WHERE product_id = ${equipmentId} AND product_type = 'equipment'`
+    } catch (e) {
+      console.log("[v0] Skipping order_items cleanup:", e instanceof Error ? e.message : e)
     }
 
     const result = await sql`
@@ -122,6 +132,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
       return NextResponse.json({ error: "Equipment not found" }, { status: 404 })
     }
 
+    console.log("[v0] Equipment deleted successfully:", equipmentId)
     return NextResponse.json({ message: "Equipment deleted successfully" })
   } catch (error) {
     console.error("[v0] Error deleting equipment:", error)

@@ -513,7 +513,7 @@ export default function AdminPage() {
     { id: "users", label: "Клиенти" },
     { id: "orders", label: "Поръчки" },
     { id: "messages", label: "Абонаменти" },
-    { id: "stores", label: "Магазини" },
+    { id: "stores", label: "Мага��ини" },
     { id: "contact", label: "Контакти" },
     { id: "remington-settings", label: "Remington секция" },
     { id: "delivery-settings", label: "Настройки доставка" },
@@ -1253,7 +1253,7 @@ const [goldFormData, setGoldFormData] = useState({
         (currentUser?.role === 'worker' && currentUser?.store_id ? currentUser.store_id : null)
       
       const url = storeIdToUse ? `/api/cars?store_id=${storeIdToUse}` : "/api/cars"
-      const response = await fetch(url)
+      const response = await fetch(url, { cache: "no-store" })
       const data = await response.json()
       setCars(data)
     } catch (error) {
@@ -1480,7 +1480,7 @@ const [goldFormData, setGoldFormData] = useState({
       }
       
       const url = storeIdToUse ? `/api/gold?${params.toString()}` : "/api/gold"
-      const response = await fetch(url)
+      const response = await fetch(url, { cache: "no-store" })
       if (!response.ok) {
         console.error("[v0] Failed to fetch gold:", response.statusText)
         setGold([])
@@ -1512,7 +1512,7 @@ const [goldFormData, setGoldFormData] = useState({
       }
       
       const url = storeIdToUse ? `/api/silver?${params.toString()}` : "/api/silver"
-      const response = await fetch(url)
+      const response = await fetch(url, { cache: "no-store" })
       if (!response.ok) {
         console.error("[v0] Failed to fetch silver:", response.statusText)
         setSilver([])
@@ -2993,9 +2993,17 @@ const handleEditSilver = (item: Silver) => {
     try {
       const response = await fetch(`/api/cars/${deletingCarId}`, {
         method: "DELETE",
+        cache: "no-store",
       })
 
-      if (!response.ok) throw new Error("Failed to delete car")
+      if (!response.ok) {
+        let serverMessage = ""
+        try {
+          const body = await response.json()
+          serverMessage = body?.details || body?.error || ""
+        } catch {}
+        throw new Error(serverMessage || `Failed to delete car (${response.status})`)
+      }
 
       toast({
         title: "Успех",
@@ -3009,7 +3017,7 @@ const handleEditSilver = (item: Silver) => {
       console.error("[v0] Error deleting car:", error)
       toast({
         title: "Грешка",
-        description: "Неуспешно изт��иване на колата",
+        description: error instanceof Error ? error.message : "Неуспешно изтриване на колата",
         variant: "destructive",
       })
     }
@@ -3114,13 +3122,21 @@ const handleEditSilver = (item: Silver) => {
     try {
       const response = await fetch(`/api/gold/${deletingGoldId}`, {
         method: "DELETE",
+        cache: "no-store",
       })
 
-      if (!response.ok) throw new Error("Failed to delete gold")
+      if (!response.ok) {
+        let serverMessage = ""
+        try {
+          const body = await response.json()
+          serverMessage = body?.details || body?.error || ""
+        } catch {}
+        throw new Error(serverMessage || `Failed to delete gold (${response.status})`)
+      }
 
       toast({
         title: "Успех",
-        description: "Златото е ����зтрито усп����ш��о",
+        description: "Златото е изтрито успешно",
       })
 
       setDeleteGoldDialogOpen(false)
@@ -3130,7 +3146,7 @@ const handleEditSilver = (item: Silver) => {
       console.error("[v0] Error deleting gold:", error)
       toast({
         title: "Грешка",
-        description: "Неуспешно изтриване на златото",
+        description: error instanceof Error ? error.message : "Неуспешно изтриване на златото",
         variant: "destructive",
       })
     }
@@ -3142,9 +3158,17 @@ const handleEditSilver = (item: Silver) => {
     try {
       const response = await fetch(`/api/silver/${deletingSilverId}`, {
         method: "DELETE",
+        cache: "no-store",
       })
 
-      if (!response.ok) throw new Error("Failed to delete silver")
+      if (!response.ok) {
+        let serverMessage = ""
+        try {
+          const body = await response.json()
+          serverMessage = body?.details || body?.error || ""
+        } catch {}
+        throw new Error(serverMessage || `Failed to delete silver (${response.status})`)
+      }
 
       toast({
         title: "Успех",
@@ -3158,7 +3182,7 @@ const handleEditSilver = (item: Silver) => {
       console.error("[v0] Error deleting silver:", error)
       toast({
         title: "Грешка",
-        description: "Неуспешно изтриване на среброто",
+        description: error instanceof Error ? error.message : "Неуспешно изтриване на среброто",
         variant: "destructive",
       })
     }
@@ -4383,7 +4407,7 @@ const resetSilverForm = () => {
                             onChange={handleHomeBannerImageChange}
                             disabled={isUploadingHomeBannerImage}
                           />
-                          {isUploadingHomeBannerImage && <p className="text-sm text-muted-foreground">Качване...</p>}
+                          {isUploadingHomeBannerImage && <p className="text-sm text-muted-foreground">Качва��е...</p>}
                           {(homeBannerImagePreview || homeBannerFormData.image_url) && (
                             <div className="mt-2 border rounded-lg overflow-hidden">
                               <img
@@ -4551,7 +4575,7 @@ const resetSilverForm = () => {
                   <AlertDialogHeader>
                     <AlertDialogTitle>Изтриване на банер</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Сигурни ли сте, че искате да изтрие��е този банер? То��а действие е необратимо.
+                      Сигурни ли сте, че искате да изтрие��е този банер? То����а действие е необратимо.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -5111,7 +5135,7 @@ const resetSilverForm = () => {
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="price">Цена (€) *</Label>
+                            <Label htmlFor="price">Цена (���) *</Label>
                             <Input
                               id="price"
                               type="number"
@@ -5284,7 +5308,7 @@ const resetSilverForm = () => {
                             id="car-promotions"
                             type="number"
                             step="0.01"
-                            placeholder="Напр. 50.00"
+                            placeholder="Нап��. 50.00"
                             value={formData.promotions ?? ""}
                             onChange={(e) =>
                               setFormData({
@@ -8686,7 +8710,7 @@ const resetSilverForm = () => {
                             <TableHead>Обща сума</TableHead>
                             <TableHead>Статус</TableHead>
                             <TableHead>Дата</TableHead>
-                            <TableHead>Действия</TableHead>
+                            <TableHead>Дейст��ия</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -9849,7 +9873,7 @@ const resetSilverForm = () => {
                             
                             {seoSettings.logo_url && (
                               <div className="mt-4 p-4 bg-slate-50 rounded-lg">
-                                <p className="text-sm text-muted-foreground mb-2">Текущо лого:</p>
+                                <p className="text-sm text-muted-foreground mb-2">Текущо ��ого:</p>
                                 <div className="flex items-center gap-4">
                                   <div className="bg-white p-2 rounded border">
                                     <img
